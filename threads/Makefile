@@ -1,7 +1,10 @@
-build: simple
+build: single multiple
 
-simple:
-	$(CC) -o simple.o simple.c
+single:
+	$(CC) -o single.o single.c
+
+multiple:
+	$(CC) -o multiple.o multiple.c
 
 clean:
 	rm *.o
