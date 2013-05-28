@@ -22,45 +22,86 @@ pthread_t threads[2];
 pthread_mutex_t mutex;
 
 /**
- * Return code of pthread subroutines.
+ * Offset counter so the writers now where to start writting to
+ * message.
  */
-int r;
+int offset = 0;
 
 /**
- * Does something value times.
+ * The message parts.
  */
-void * timer_one(void * value);
-void * timer_two(void * value);
+char hello[5] = "hello";
+char world[6] = " world";
 
 /**
- * Takes first argument as value to calculate faculty in new thread.
+ * This is our shared ressource.
+ * It is a char array on which each array should write something.
  */
+char message[11];
+
+void * write_hello();
+void * write_world();
+
 int main(int argv, const char ** argc) {
-    pthread_create(&threads[0], NULL, timer_one, NULL);
-    pthread_create(&threads[1], NULL, timer_two, NULL);
+    pthread_mutex_init(&mutex, NULL);
+    
+    pthread_create(&threads[0], NULL, write_world, NULL);
+    pthread_create(&threads[1], NULL, write_hello, NULL);
     
     pthread_join(threads[0], NULL);
     pthread_join(threads[1], NULL);
 
+    printf("Message finally written from threads: %s.\n", message);
+
     return 0;
 }
 
-void * timer_one(void * value) {
-    printf("Timer one started.\n");
+/**
+ * This function will copy "hello" to the shared message.
+ *
+ * Because we do not want the second thread write something
+ * into message while we do we lock the mutex. While this
+ * time the other thread is in blocking state waiting on 
+ * a freed lock.
+ */
+void * write_hello() {
+    printf("HELLO writer started.\n");
+    
+    pthread_mutex_lock(&mutex);
 
-    sleep(5);
+    sleep(1);
 
-    printf("Timer one finished.\n");
+    int i;
+    for (i = 0; i < sizeof(hello); i++)
+        message[offset + i] = hello[i];
+
+    offset += i;
+
+    pthread_mutex_unlock(&mutex);
 
     pthread_exit(NULL);
 }
 
-void * timer_two(void * value) {
-    printf("Timer two started.\n");
+/**
+ * This function will copy " world" to the shared message.
+ *
+ * Actually it should be the first writer which writes 
+ * something to message but because we let it sleep
+ * we see the full power of mutex. While this thread sleeps
+ * the write hello thread is spawned.
+ */
+void * write_world() {
+    printf("WORLD writer started.\n");
 
-    sleep(2);
+    sleep(1);
 
-    printf("Timer two finished.\n");
+    pthread_mutex_lock(&mutex);
+
+    int i;
+    for (i = 0; i < sizeof(world); i++)
+        message[offset + i] = world[i];
+
+    pthread_mutex_unlock(&mutex);
 
     pthread_exit(NULL);
 }

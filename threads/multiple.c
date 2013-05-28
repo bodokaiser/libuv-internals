@@ -10,20 +10,14 @@
  */
 pthread_t threads[2];
 
-/**
- * Return code of pthread subroutines.
- */
 int r;
 
 /**
- * Does something value times.
+ * Sleep for a specific amount of seconds.
  */
 void * timer_one(void * value);
 void * timer_two(void * value);
 
-/**
- * Takes first argument as value to calculate faculty in new thread.
- */
 int main(int argv, const char ** argc) {
     pthread_create(&threads[0], NULL, timer_one, NULL);
     pthread_create(&threads[1], NULL, timer_two, NULL);
