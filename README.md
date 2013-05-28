@@ -4,6 +4,30 @@
 different parts of the **libuv** architecture. For example the _queue_ snippet
 shows how **QUEUE** works with a simple use-case.
 
+## Content
+
+### queue
+
+**QUEUE** is a circularly linked list in libuv which is used to store tasks in
+order. Its main idea is to have a array with two items. The first item points
+to the previous list node while the second points to the next one. The last 
+node points again to the beginning of the list. Through this set up it is 
+possible by just following the pointers to navigate through the list. If you
+now want to access a specific queue member you can calculate the memory address
+of the struct which implements a queue node as property. This is possible
+because a struct is always saved in one memory block and the position of a
+property has a specific byte offset. Using this allows to create a pointer to
+the beginning of the whole struct and we can access other properties.
+
+### threads
+
+To avoid blocking **libuv** executes work requests in a thread pool. Each time
+intensive i/o should be done a task will be put in queue and then spawned as 
+thread in which it can execute to the end without blocking the main thread. The
+given examples show up basic thread management. It is recommend to read this
+[document](https://computing.llnl.gov/tutorials/pthreads) to get an idea of the
+basics.
+
 ## License
 
 Copyright © 2013 Bodo Kaiser <i@bodokaiser.io>
