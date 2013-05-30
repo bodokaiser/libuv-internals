@@ -1,4 +1,4 @@
-build: single multiple mutex cond
+build: single multiple mutex cond sema rwlock
 
 single:
 	$(CC) -o single.o single.c
@@ -14,6 +14,9 @@ cond:
 
 sema:
 	$(CC) -o sema.o sema.c
+
+rwlock:
+	$(CC) -o rwlock.o rwlock.c
 
 clean:
 	rm *.o
