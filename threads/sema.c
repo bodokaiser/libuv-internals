@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
 
@@ -18,10 +20,10 @@ void * worker_b();
 int main() {
     value = 3;
 
-    sem_init(&sema, 0, 1);
+    sem_init(&sema, 0, 0);
 
-    pthread_create(&threads[0], NULL, worker_a, NULL);
     pthread_create(&threads[1], NULL, worker_b, NULL);
+    pthread_create(&threads[0], NULL, worker_a, NULL);
 
     pthread_join(threads[0], NULL);
     pthread_join(threads[1], NULL);
@@ -40,8 +42,6 @@ int main() {
  * Multiplicates value by 4.
  */
 void * worker_a() {
-    sem_wait(&sema);
-
     value *= 4;
 
     sem_post(&sema);
