@@ -1,4 +1,4 @@
-build: single multiple mutex
+build: single multiple mutex cond
 
 single:
 	$(CC) -o single.o single.c
@@ -8,6 +8,9 @@ multiple:
 
 mutex:
 	$(CC) -o mutex.o mutex.c
+
+cond:
+	$(CC) -o cond.o cond.c
 
 clean:
 	rm *.o
