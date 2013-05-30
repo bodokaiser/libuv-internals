@@ -33,9 +33,13 @@ void * result;
  * Takes first argument as value to calculate faculty in new thread.
  */
 int main(int argv, const char ** argc) {
+    if (!argc[1]) {
+        return printf("Please pass a number as parameter.\n");
+    }
+
     /* convert string argument to integer */
     value = atoi(argc[1]);
-    
+
     /* spawn faculty thread with value as argument */
     r = pthread_create(&thread, NULL, faculty, (void *) value);
 
@@ -51,6 +55,8 @@ int main(int argv, const char ** argc) {
         return printf("Error on joining thread.\n");
     }
 
+    pthread_detach(thread);
+        
     return printf("Faculty of %d equals %d.\n", value, (int) result);
 }
 

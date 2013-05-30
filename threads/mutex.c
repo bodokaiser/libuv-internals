@@ -51,6 +51,11 @@ int main(int argv, const char ** argc) {
     pthread_join(threads[0], NULL);
     pthread_join(threads[1], NULL);
 
+    pthread_detach(threads[0]);
+    pthread_detach(threads[1]);
+
+    pthread_mutex_destroy(&mutex);
+
     printf("Message finally written from threads: %s.\n", message);
 
     return 0;

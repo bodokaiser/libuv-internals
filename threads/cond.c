@@ -61,6 +61,13 @@ int main(int argv, const char ** argc) {
     pthread_join(threads[1], NULL);
     pthread_join(threads[2], NULL);
 
+    pthread_detach(threads[0]);
+    pthread_detach(threads[1]);
+    pthread_detach(threads[2]);
+
+    pthread_mutex_destroy(&mutex);
+    pthread_cond_destroy(&cond);
+
     printf("Value started at %d and ends with %d.\n", 0, counter);
 
     return 0;
