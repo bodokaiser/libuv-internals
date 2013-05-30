@@ -12,5 +12,8 @@ mutex:
 cond:
 	$(CC) -o cond.o cond.c
 
+sema:
+	$(CC) -o sema.o sema.c
+
 clean:
 	rm *.o
