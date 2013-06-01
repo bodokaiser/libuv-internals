@@ -17,7 +17,7 @@ struct work_s {
     int a;
     int b;
     int type;
-    QUEUE node[2];
+    QUEUE node;
 };
 
 void * worker();
@@ -26,9 +26,21 @@ int submit_work(int a, int b, int type);
 
 int main() {
     QUEUE_INIT(&queue);
+    
+    struct work_s work[2];
 
-    submit_work(5, 5, 1);
-    submit_work(0, 0, 0);
+    work[0].a = 5;
+    work[0].b = 7;
+    work[0].type = 1;
+
+    work[1].a = 3;
+    work[1].b = 3;
+    work[1].type = 3;
+
+    QUEUE_INIT(&work[0].node);
+    QUEUE_INIT(&work[1].node);
+    QUEUE_INSERT_TAIL(&queue, &work[0].node);
+    QUEUE_INSERT_TAIL(&queue, &work[1].node);
 
     pthread_cond_init(&cond, NULL);
     pthread_mutex_init(&mutex, NULL);
@@ -41,7 +53,7 @@ int main() {
 
     for (int i = 0; i < MAX_THREADS; i++)
         pthread_detach(threads[i]);
-
+ 
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&cond);
 
@@ -51,65 +63,59 @@ int main() {
 void * worker() { 
     QUEUE * q;
 
-    struct work_s * work;
-
     int result;
 
+    struct work_s * work;
+
     for (;;) {
+        while (QUEUE_EMPTY(&queue)) {
+            printf("waiting for insertion\n");
+            pthread_cond_wait(&cond, &mutex);
+        }
+        
         pthread_mutex_lock(&mutex);
 
-        while (QUEUE_EMPTY(&queue))
-            pthread_cond_wait(&cond, &mutex);
-
         q = QUEUE_HEAD(&queue);
-
+        
         QUEUE_REMOVE(q);
 
         pthread_mutex_unlock(&mutex);
-
+        
         work = QUEUE_DATA(q, struct work_s, node);
-
+        
+        printf("received work type %d with a %d and b %d \n", work->a, work->b, work->type);
+      
         if (work->type == 0) {
-            pthread_exit(NULL);
             break;
         }
 
         switch (work->type) {
             case 1:
                 result = work->a + work->b;
-                printf("%d + %d = %d", work->a, work->b, result);
+                printf("%d + %d = %d\n", work->a, work->b, result);
                 break;
             case 2:
                 result = work->a - work->b;
-                printf("%d - %d = %d", work->a, work->b, result);
+                printf("%d - %d = %d\n", work->a, work->b, result);
                 break;
             case 3:
                 result = work->a * work->b;
-                printf("%d * %d = %d", work->a, work->b, result);
+                printf("%d * %d = %d\n", work->a, work->b, result);
                 break;
             case 4:
                 result = work->a / work->b;
-                printf("%d / %d = %d", work->a, work->b, result);
+                printf("%d / %d = %d\n", work->a, work->b, result);
                 break;
         }
     }
+
+
+    pthread_exit(NULL);
 }
 
 int submit_work(int a, int b, int type) {
-    struct work_s work;
 
-    work.a = a;
-    work.b = b;
-    work.type = type;
-
-    pthread_mutex_lock(&mutex);
-
-    QUEUE_INIT(work.node);
-    QUEUE_INSERT_TAIL(work.node, &queue);
-
-    pthread_mutex_unlock(&mutex);
-
-    pthread_cond_signal(&cond);
+    //pthread_cond_signal(&cond);
 
     return 0;
 }
