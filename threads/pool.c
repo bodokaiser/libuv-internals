@@ -22,11 +22,14 @@ struct work_s {
 
 void * worker();
 
-int submit_work(int a, int b, int type);
+void submit_work(int a, int b, int type);
 
 int main() {
     QUEUE_INIT(&queue);
-    
+
+    pthread_cond_init(&cond, NULL);
+    pthread_mutex_init(&mutex, NULL);
+
     struct work_s work[2];
 
     work[0].a = 5;
@@ -39,12 +42,13 @@ int main() {
 
     QUEUE_INIT(&work[0].node);
     QUEUE_INIT(&work[1].node);
+
     QUEUE_INSERT_TAIL(&queue, &work[0].node);
     QUEUE_INSERT_TAIL(&queue, &work[1].node);
 
-    pthread_cond_init(&cond, NULL);
-    pthread_mutex_init(&mutex, NULL);
-
+    /* this does actually the same as above but causes a segmentation fault. */
+    submit_work(5, 6, 3);
+        
     for (int i = 0; i < MAX_THREADS; i++)
         pthread_create(&threads[i], NULL, worker, NULL);
 
@@ -58,6 +62,23 @@ int main() {
     pthread_cond_destroy(&cond);
 
     return 0;
+}
+
+void submit_work(int a, int b, int type) {
+    struct work_s work;
+
+    work.a = a;
+    work.b = b;
+    work.type = type;
+
+    pthread_mutex_lock(&mutex);
+
+    QUEUE_INIT(&work.node);
+    QUEUE_INSERT_TAIL(&queue, &work.node);
+
+    pthread_mutex_unlock(&mutex);
+
+    pthread_cond_signal(&cond);
 }
 
 void * worker() { 
@@ -77,12 +98,14 @@ void * worker() {
 
         q = QUEUE_HEAD(&queue);
         
+        /* here the segmentation fault occurs */
         QUEUE_REMOVE(q);
 
         pthread_mutex_unlock(&mutex);
         
         work = QUEUE_DATA(q, struct work_s, node);
         
+        /* this will print some incorrect data for work */
         printf("received work type %d with a %d and b %d \n", work->a, work->b, work->type);
       
         if (work->type == 0) {
@@ -111,11 +134,4 @@ void * worker() {
 
 
     pthread_exit(NULL);
-}
-
-int submit_work(int a, int b, int type) {
-
-    //pthread_cond_signal(&cond);
-
-    return 0;
 }

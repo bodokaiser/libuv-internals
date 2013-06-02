@@ -28,6 +28,14 @@ given examples show up basic thread management. It is recommend to read this
 [document](https://computing.llnl.gov/tutorials/pthreads) to get an idea of the
 basics.
 
+### events
+
+There are several mechanisms which are used by libuv to handle pending tasks in
+a non-blocking way. For example async.c uses eventfd (on linux) and else 
+socketpair to execute async callbacks. Also all notification for example about
+new readable data in the socket must be published to libuv somehow. The events
+section tries to get some concepts of that.
+
 ## License
 
 Copyright © 2013 Bodo Kaiser <i@bodokaiser.io>
