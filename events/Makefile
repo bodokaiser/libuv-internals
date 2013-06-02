@@ -7,4 +7,5 @@ kqueue:
 	$(CC) -o kqueue.o kqueue.c
 
 clean:
+	rm *.tmp
 	rm *.o
