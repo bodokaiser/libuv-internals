@@ -55,11 +55,13 @@ int main() {
     for (int i = 0; i < MAX_THREADS; i++)
         pthread_join(threads[i], NULL);
 
+    /*
     for (int i = 0; i < MAX_THREADS; i++)
         pthread_detach(threads[i]);
  
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&cond);
+    */
 
     return 0;
 }
@@ -89,12 +91,12 @@ void * worker() {
     struct work_s * work;
 
     for (;;) {
+        pthread_mutex_lock(&mutex);
+        
         while (QUEUE_EMPTY(&queue)) {
             printf("waiting for insertion\n");
             pthread_cond_wait(&cond, &mutex);
         }
-        
-        pthread_mutex_lock(&mutex);
 
         q = QUEUE_HEAD(&queue);
         
