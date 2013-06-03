@@ -36,6 +36,17 @@ socketpair to execute async callbacks. Also all notification for example about
 new readable data in the socket must be published to libuv somehow. The events
 section tries to get some concepts of that.
 
+### streams
+
+The stream component is the most platform dependent part of libuv. As I 
+understood correctly so far the most simple implementation works by just
+subscribing to a file discriptor with the event notification system of the os.
+In case of OS X this is not possible for all all file discriptor types. This
+causes libuv to create an extra thread polling manuelly the file state and then
+using the async component to wake up the main thread. The created example tries
+to the main idea of a readable file stream which will execute read callbacks
+each time new data is added to the file.
+
 ## License
 
 Copyright © 2013 Bodo Kaiser <i@bodokaiser.io>
