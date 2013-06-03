@@ -1,7 +1,8 @@
-build: readable-file
+build: file
 
-readable-file:
-	$(CC) -o readable_file.o readable_file.c
+file:
+	$(CC) -o file.o file.c
 
 clean:
 	rm *.o
+	rm *.tmp

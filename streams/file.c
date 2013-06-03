@@ -7,21 +7,47 @@
 #include <sys/time.h>
 #include <sys/event.h>
 
-#define PATH "some.temp"
+#define PATH "some.tmp"
 
+/**
+ * Instance of kqueue.
+ */
 int kq;
 
+/**
+ * File descriptor.
+ */
 int fd;
 
+/**
+ * Amount of new events.
+ */
 int nev;
 
+/**
+ * File offset to read from.
+ */
 int off = 0;
 
+/**
+ * File stream pointer.
+ */
+FILE * file;
+
+/**
+ * Subscribes and published events.
+ */
 struct kevent event;
 struct kevent change;
 
 void read_cb();
 
+/**
+ * 1. Run `make file && ./make.o`
+ * 2. Open a new terminal tab
+ * 3. type `echo "hello world" >> some.tmp`
+ * 4. look what the stream received
+ */
 int main(int argc, const char ** argv) {
     kq = kqueue();
 
@@ -36,6 +62,8 @@ int main(int argc, const char ** argv) {
         perror("Error on opening temp file.\n");
         exit(EXIT_FAILURE);
     }
+
+    file = fdopen(fd, "r");
 
     EV_SET(&change, fd, EVFILT_VNODE, EV_ADD | EV_ENABLE | EV_ONESHOT, 
             NOTE_EXTEND, 0, 0);
@@ -57,27 +85,22 @@ int main(int argc, const char ** argv) {
 }
 
 /**
- * The following code actually only tries to emulate an offset read from a file.
+ * Reads added data from file.
  */
 void read_cb() {
-    struct stat * fd_stat = (struct stat *) malloc(sizeof(struct stat));
+    fseek(file, 0, SEEK_END);
 
-    fstat(fd, fd_stat);
+    int size = (ftell (file)) - off;
 
-    int size = fd_stat->st_size;
-    
+    fseek(file, off, SEEK_SET);
+
     char * buf = (char *) malloc(size);
-    char * buf2 = (char *) malloc(off);
 
-    read(fd, buf, size);
+    fread(buf, size, 1, file);
 
-    int a = 0;
-    for (int i = off; i < (size - off); i++) {
-        buf2[a] = buf[i];
-        a++;
-    } 
-
-    printf("%s\n", buf2);
+    printf("%s\n", buf);
 
     off += size;
+
+    free(buf);
 }
