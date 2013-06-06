@@ -15,10 +15,6 @@ int r, i;
 
 int sockfd;
 
-int conns = 0;
-
-int clients[10];
-
 char buffer[1024];
 
 struct kevent events[2];
@@ -95,7 +91,6 @@ int main(int argc, const char ** argv) {
         
         printf("Got event\n");
         
-        int i;
         for (i = 0; i < nev; i++) {
             struct client_s * client = malloc(sizeof(struct client_s));
             
@@ -116,8 +111,6 @@ int main(int argc, const char ** argv) {
             
             if (events[i].udata) {
                 client = events[i].udata;
-
-                printf("fd %d, type %d\n", client->fd, client->type);
 
                 if (client->type == 2) {
                     recv(client->fd, buffer, 1024, 0);
