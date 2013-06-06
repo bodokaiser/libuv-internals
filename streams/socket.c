@@ -1,68 +1,44 @@
-#include <fcntl.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
-#include <sys/un.h>
-#include <sys/stat.h>
-#include <sys/time.h>
 #include <sys/event.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 
-#define HOSTNAME "127.0.0.1"
-#define PORT "3000"
-
-/**
- * Used to check return values.
- */
 int r;
 
-/**
- * Instance of kqueue.
- */
 int kq;
 
-/**
- * Amount of new events.
- */
 int nev;
 
-/**
- * Socket file descriptor.
- */
 int sockfd;
 
-/**
- * Server socket address.
- */
-struct addrinfo * addr;
-struct addrinfo hints;
+int conns = 0;
 
-/**
- * Subscribes and published events.
- */
-struct kevent events[10];
-struct kevent changes[10];
+int clients[10];
 
-void read_cb();
+char buffer[1024];
+
+struct kevent events[2];
+struct kevent changes[2];
+
+struct client_s {
+    int fd;
+    int type;
+    socklen_t addrlen;
+    struct sockaddr addr;
+};
 
 int main(int argc, const char ** argv) {
-    kq = kqueue();
+    struct addrinfo * addr = malloc(sizeof(struct addrinfo));
+    struct addrinfo * hints = malloc(sizeof(struct addrinfo));
 
-    if (kq == -1) {
-        perror("Error on creating kqueue.\n");
-        exit(EXIT_FAILURE);
-    }
+    hints->ai_family = AF_INET;
+    hints->ai_socktype = SOCK_STREAM;
+    hints->ai_protocol = IPPROTO_TCP;
 
-    memset(&hints, 0, sizeof(hints));
-
-    hints.ai_flags = AI_PASSIVE;
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
-
-    r = getaddrinfo(HOSTNAME, PORT, &hints, &addr);
+    r = getaddrinfo("127.0.0.1", "3000", hints, &addr);
 
     if (r == -1) {
         perror("Error on resolving address.\n");
@@ -72,10 +48,10 @@ int main(int argc, const char ** argv) {
     sockfd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
 
     if (sockfd == -1) {
-        perror("Error on creating socket.\n");
+        perror("Error on creating socket descriptor.\n");
         exit(EXIT_FAILURE);
     }
-
+ 
     r = bind(sockfd, addr->ai_addr, addr->ai_addrlen);
 
     if (r == -1) {
@@ -83,63 +59,64 @@ int main(int argc, const char ** argv) {
         exit(EXIT_FAILURE);
     }
 
-    r = listen(sockfd, 10);
+    r = listen(sockfd, 1);
 
     if (r == -1) {
         perror("Error on listening on socket.\n");
         exit(EXIT_FAILURE);
     }
 
-    EV_SET(&changes[0], sockfd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_ONESHOT, 
-            0, 0, 0);
+    kq = kqueue();
+
+    if (kq == -1) {
+        perror("Error on creating kqueue.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    EV_SET(&changes[0], sockfd, EVFILT_READ, 
+            EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 0, 0);
 
     for (;;) {
-        nev = kevent(kq, changes, 10, events, 10, NULL);
+        nev = kevent(kq, changes, 2, events, 2, NULL);
 
         if (nev == -1) {
-            perror("Error on receiving events.\n");
+            perror("Error on resolving kevents.\n");
             exit(EXIT_FAILURE);
         }
 
-        /* handle new events */
         for (int i = 0; i < nev; i++) {
-            /* handle server specific events */
+            struct client_s * client = malloc(sizeof(struct client_s));
+            
             if (events[i].ident == sockfd) {
-                printf("handling events\n");
+                client->fd = accept(sockfd, &client->addr, &client->addrlen);
 
-                int fd = accept(sockfd, (struct sockaddr *) &addr, 
-                        (socklen_t *) addr->ai_addrlen);
-
-                if (fd == -1) {
+                if (client->fd == -1) {
                     perror("Error on accepting client.\n");
                     exit(EXIT_FAILURE);
                 }
 
-                EV_SET(&changes[1], fd, EVFILT_READ, 
-                        EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 1, 0);
-            
-                printf("Client %d connected.\n", fd);
+                client->type = 2;
+
+                EV_SET(&changes[1], client->fd, EVFILT_READ, 
+                        EV_ADD | EV_ENABLE, 0, 0, client);
             }
+            
+            if (events[i].udata) {
+                client = events[i].udata;
 
-            /* handle client specific events */
-            if (events[i].data == 1) {
-                char * buffer = malloc(1024);
-                FILE * client = malloc(sizeof(FILE));
+                printf("fd %d, type %d\n", client->fd, client->type);
 
-                client = fdopen(events[i].ident, "r");
-
-                fseek(client, 0, SEEK_SET);
-                fread(buffer, 1024, 1, client);
-
-                printf("%s\n", buffer);
-                
-                fclose(client);
-
-                free(buffer);
-                free(client);
+                if (client->type == 2) {
+                    recv(client->fd, buffer, 1024, MSG_WAITALL);
+                    printf("client says: %s\n", buffer);
+                }
             }
         }
     }
+
+    close(sockfd);
+
+    freeaddrinfo(addr);
 
     return EXIT_SUCCESS;
 }
