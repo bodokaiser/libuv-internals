@@ -7,17 +7,13 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+int r;
+
 int kq;
 
 int nev;
 
-int r, i;
-
 int sockfd;
-
-int conns = 0;
-
-int clients[10];
 
 char buffer[1024];
 
@@ -34,9 +30,9 @@ struct client_s {
 int main(int argc, const char ** argv) {
     struct addrinfo * addr = malloc(sizeof(struct addrinfo));
     struct addrinfo * hints = malloc(sizeof(struct addrinfo));
-    
-    memset(changes, 0, sizeof(changes));
+
     memset(events, 0, sizeof(events));
+    memset(changes, 0, sizeof(events));
 
     hints->ai_family = AF_INET;
     hints->ai_socktype = SOCK_STREAM;
@@ -76,31 +72,22 @@ int main(int argc, const char ** argv) {
         perror("Error on creating kqueue.\n");
         exit(EXIT_FAILURE);
     }
-    
+
     EV_SET(&changes[0], sockfd, EVFILT_READ, 
             EV_ADD | EV_ENABLE, 0, 0, 0);
 
     for (;;) {
-        int c_n = 1;
-        if (changes[1].ident) {
-            c_n = 2;
-        }
-        
-        nev = kevent(kq, changes, c_n, events, 2, NULL);
+        nev = kevent(kq, changes, 2, events, 2, NULL);
 
         if (nev == -1) {
             perror("Error on resolving kevents.\n");
             exit(EXIT_FAILURE);
         }
-        
-        printf("Got event\n");
-        
-        int i;
-        for (i = 0; i < nev; i++) {
+
+        for (int i = 0; i < nev; i++) {
             struct client_s * client = malloc(sizeof(struct client_s));
             
             if (events[i].ident == sockfd) {
-                printf("Accepting\n");
                 client->fd = accept(sockfd, &client->addr, &client->addrlen);
 
                 if (client->fd == -1) {
@@ -120,7 +107,7 @@ int main(int argc, const char ** argv) {
                 printf("fd %d, type %d\n", client->fd, client->type);
 
                 if (client->type == 2) {
-                    recv(client->fd, buffer, 1024, 0);
+                    recv(client->fd, buffer, 1024, MSG_WAITALL);
                     printf("client says: %s\n", buffer);
                 }
             }
